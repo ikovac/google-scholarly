@@ -2,14 +2,14 @@
 
 ## Example
 
-`
+```
 const API_KEY = ''; // Your https://proxiesapi.com/ api key
 Scholar.init(API_KEY);
 Scholar.getAuthor('Steven A. Cholewiak').then(res => console.log(res));
-`
+```
 
 Expected output:
-`
+```
 [
   {
     name: 'Steven A. Cholewiak, PhD',
@@ -24,4 +24,4 @@ Expected output:
     ]
   }
 ]
-`
+```
