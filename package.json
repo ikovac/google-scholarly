@@ -1,0 +1,26 @@
+{
+  "name": "google-scholarly",
+  "version": "1.0.0",
+  "description": "Google Scholar scraping library",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ikovac/scholarly.git"
+  },
+  "keywords": [
+    "Scholar"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ikovac/scholarly/issues"
+  },
+  "homepage": "https://github.com/ikovac/scholarly#readme",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
+    "got": "^11.6.0"
+  }
+}
