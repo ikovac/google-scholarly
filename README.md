@@ -1,5 +1,10 @@
 # Google Scholar scrape tool
 
+## Installation
+```
+npm install --save google-scholarly
+```
+
 ## Example
 
 ```
