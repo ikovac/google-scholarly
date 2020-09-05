@@ -3,6 +3,7 @@
 ## Example
 
 ```
+const Scholar = require('google-scholarly');
 const API_KEY = ''; // Your https://proxiesapi.com/ api key
 Scholar.init(API_KEY);
 Scholar.getAuthor('Steven A. Cholewiak').then(res => console.log(res));
