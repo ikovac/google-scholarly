@@ -4,6 +4,7 @@
 ```
 npm install --save google-scholarly
 ```
+Get API_KEY from: https://proxiesapi.com/
 
 ## Example
 
