@@ -4,7 +4,9 @@ const apiKey = process.env.API_KEY; // Your https://proxiesapi.com/ api key
 
 Scholar.init(apiKey);
 
-Scholar.getAuthor('Steven A. Cholewiak').then(res => console.log(res));
+Scholar.searchPub('"Wireless sensor networks: a survey"').then(res => console.log(res));
+
+// Scholar.getAuthor('Steven A. Cholewiak').then(res => console.log(res));
 
 // Expected output:
 // [
