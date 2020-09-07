@@ -1,7 +1,8 @@
+require('dotenv').config();
 const Scholar = require('../index');
-const API_KEY = ''; // Your https://proxiesapi.com/ api key
+const apiKey = process.env.API_KEY; // Your https://proxiesapi.com/ api key
 
-Scholar.init(API_KEY);
+Scholar.init(apiKey);
 
 Scholar.getAuthor('Steven A. Cholewiak').then(res => console.log(res));
 
