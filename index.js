@@ -12,10 +12,10 @@ const searchTags = {
   authorProfile: {
     result: '#gsc_bdy',
     name: '.gsc_lcl #gsc_prf_in',
-    domain: '.gsc_lcl gsc_prf_il',
+    domain: '.gsc_lcl #gsc_prf_ivh',
     affiliation: '.gsc_lcl .gsc_prf_il',
-    interests: '.gsc_lcl .gsc_prf_il',
-    metrics: '.gsc_rsb #gsc_rsb_st'
+    interests: '.gsc_lcl #gsc_prf_int a',
+    metrics: '.gsc_rsb #gsc_rsb_st tbody tr'
   }
 };
 
@@ -24,13 +24,11 @@ class Scholar {
 
   init(key) {
     this.apiKey = key;
-    // this.baseUrl = `${PROXY_URL}?auth_key=${this.apiKey}&url=`;
-    this.baseUrl = ``;
+    this.baseUrl = `${PROXY_URL}?auth_key=${this.apiKey}&url=`;
   }
 
   request(url) {
-    // const searchUrl = `${this.baseUrl}${encodeURIComponent(url)}`;
-    const searchUrl = `${this.baseUrl}${url}`;
+    const searchUrl = `${this.baseUrl}${encodeURIComponent(url)}`;
     return got(searchUrl);
   }
 
@@ -43,7 +41,7 @@ class Scholar {
       if (error.response.statusCode === 401) {
         throw new Error('Api key invalid or expired');
       }
-      throw new Error(error);
+      throw error;
     }
   }
 
@@ -51,12 +49,24 @@ class Scholar {
     const url = SCHOLAR_BASE_URL + link;
     try {
       const result = await this.request(url)
-      return this.parsePub(result.body);
+      return this.parseAuthorProfile(result.body);
     } catch (error) {
       if (error.response.statusCode === 401) {
         throw new Error('Api key invalid or expired');
       }
-      throw new Error(error);
+      throw error;
+    }
+  }
+
+  async getPubAuthors(query) {
+    try {
+      const { authors } = await this.searchPub(query);
+      if(!authors) {
+        return null;
+      }
+      return await Promise.all(authors.map(async ({ url }) => await this.getAuthorProfile(url)));
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -77,52 +87,29 @@ class Scholar {
   }
 
   parseAuthorProfile(html) {
+    const { authorProfile } = searchTags;
     const $ = cheerio.load(html);
+    const $result = $(authorProfile.result);
+
+    const name = $(authorProfile.name, $result).text();
+    const affiliation = $(authorProfile.affiliation, $result).first().text();
+    const homepage = $(`${authorProfile.domain} a`, $result).attr('href');
+    const $domainText = $(authorProfile.domain, $result).text();
+    const domain = $domainText.slice(0, $domainText.indexOf(' -')).split(' ').pop();
+
+    // Interests
+    const interests = [];
+    $(authorProfile.interests, $result).each((_, $element) => {
+      const interest = $($element).text();
+      interests.push(interest);
+    });
+
+    // hindex
+    const $tr = $(authorProfile.metrics, $result).get(1);
+    const hindex = $('.gsc_rsb_std', $tr).first().text();
+
+    return { name, affiliation, homepage, domain, hindex, interests };
   }
-
-  // parseResult(html) {
-  //   const $ = cheerio.load(html);
-  //   const results = $(searchTags.results);
-
-  //   if (!results.length) {
-  //     return null;
-  //   }
-
-  //   const authors = [];
-  //   $(results).each((index, element) => {
-  //     const author = {};
-
-  //     author.name = $(searchTags.name, element).text();
-  //     author.domain = $(searchTags.email, element).text().split(' ').pop();
-  //     author.affiliation = $(searchTags.affiliation, element).text();
-
-  //     const interestsHtml = $(searchTags.interests, element);
-  //     const interests = [];
-  //     $(interestsHtml).each((_, element) => {
-  //       interests.push($(element).text());
-  //     });
-  //     author.interests = interests;
-
-  //     authors.push(author);
-  //   });
-
-  //   return authors;
-  // }
-
-  // async getAuthor(query) {
-  //   const url = `${SCHOLAR_BASE_URL}/citations?hl=en&view_op=search_authors&mauthors=` + encodeURIComponent(query);
-
-  //   let result;
-  //   try {
-  //     result = await this.request(url)
-  //     return this.parseResult(result.body);
-  //   } catch (error) {
-  //     if (error.response.statusCode === 401) {
-  //       throw new Error('Api key invalid or expired');
-  //     }
-  //     throw new Error(error);
-  //   }
-  // }
 }
 
 module.exports = new Scholar();
