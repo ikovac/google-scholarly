@@ -1,4 +1,4 @@
-# Google Scholar scrape tool
+# Google Scholar Node.js 
 
 ## Installation
 ```
