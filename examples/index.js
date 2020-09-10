@@ -30,7 +30,7 @@ Scholar
 //     homepage: undefined,
 //     domain: 'cs.kent.ed',
 //     hindex: '12',
-//     interests: [ve
+//     interests: [
 //       'haptics',
 //       'perception',
 //       'immersive user interface',
