@@ -2,23 +2,30 @@
 
 const cheerio = require('cheerio');
 const got = require('got');
+
 const PROXY_URL = 'http://api.proxiesapi.com';
 const SCHOLAR_BASE_URL = 'https://scholar.google.com';
 
-const searchTags = {
+const selectors = {
   pub: {
-    result: '.gs_r.gs_or.gs_scl .gs_ri',
-    title: 'h3 a',
+    container: '.gs_ri',
+    title: '.gs_rt',
     authors: '.gs_a a'
   },
-  authorProfile: {
-    result: '#gsc_bdy',
-    name: '.gsc_lcl #gsc_prf_in',
-    domain: '.gsc_lcl #gsc_prf_ivh',
-    affiliation: '.gsc_lcl .gsc_prf_il',
-    interests: '.gsc_lcl #gsc_prf_int a',
-    metrics: '.gsc_rsb #gsc_rsb_st tbody tr'
+  author: {
+    container: '#gsc_prf',
+    name: '#gsc_prf_in',
+    affiliation: '#gsc_prf_in + .gsc_prf_il',
+    domain: '#gsc_prf_ivh',
+    homepage: '#gsc_prf_ivh a',
+    interests: '#gsc_prf_int a',
+    metrics: '#gsc_rsb_st tr:nth-of-type(2) .gsc_rsb_std'
   }
+};
+
+const isHTTPError = (err, { statusCode }) => {
+  return err instanceof got.HTTPError &&
+    err.response.statusCode === statusCode;
 };
 
 class Scholar {
@@ -45,7 +52,7 @@ class Scholar {
       const result = await this.request(url.href);
       return this.parsePub(result.body);
     } catch (error) {
-      if (error.response.statusCode === 401) {
+      if (isHTTPError(error, { statusCode: 401 })) {
         throw new Error('Api key invalid or expired');
       }
       throw error;
@@ -58,7 +65,7 @@ class Scholar {
       const result = await this.request(url.href);
       return this.parseAuthorProfile(result.body);
     } catch (error) {
-      if (error.response.statusCode === 401) {
+      if (isHTTPError(error, { statusCode: 401 })) {
         throw new Error('Api key invalid or expired');
       }
       throw error;
@@ -70,46 +77,43 @@ class Scholar {
     if (!authors) {
       return;
     }
-    return await Promise.all(authors.map(async ({ url }) => await this.getAuthorProfile(url)));
+    return Promise.all(authors.map(({ url }) => this.getAuthorProfile(url)));
   }
 
   parsePub(html) {
-    const { pub } = searchTags;
+    const { pub } = selectors;
     const $ = cheerio.load(html);
-    const $result = $(pub.result).first().html();
-    const $authors = $(pub.authors, $result);
+    const $publicationContainer = $(pub.container).first();
 
-    const authors = [];
-    $($authors).each((_, $element) => {
-      const name = $($element).text();
-      const url = $($element).attr('href');
-      authors.push({ name, url });
-    });
-    const title = $(pub.title, $result).text();
+    const $authors = $publicationContainer.find(pub.authors);
+    const authors = $authors.map((_, el) => {
+      const $el = $(el);
+      const name = $el.text();
+      const url = $el.attr('href');
+      return { name, url };
+    }).get();
+
+    const title = $publicationContainer.find(pub.title).text();
     return { title, authors };
   }
 
   parseAuthorProfile(html) {
-    const { authorProfile } = searchTags;
+    const { author } = selectors;
     const $ = cheerio.load(html);
-    const $result = $(authorProfile.result);
+    const $profileContainer = $(author.container);
 
-    const name = $(authorProfile.name, $result).text();
-    const affiliation = $(authorProfile.affiliation, $result).first().text();
-    const homepage = $(`${authorProfile.domain} a`, $result).attr('href');
-    const $domainText = $(authorProfile.domain, $result).text();
-    const domain = $domainText.slice(0, $domainText.indexOf(' -')).split(' ').pop();
+    const name = $profileContainer.find(author.name).text();
+    const affiliation = $profileContainer.find(author.affiliation).text();
+    const homepage = $profileContainer.find(author.homepage).attr('href');
 
-    // Interests
-    const interests = [];
-    $(authorProfile.interests, $result).each((_, $element) => {
-      const interest = $($element).text();
-      interests.push(interest);
-    });
+    const $domain = $profileContainer.find(author.domain);
+    const emailInfo = $domain[0].childNodes[0].data.trim();
+    const domain = emailInfo.split(/\s+/g).filter(token => token !== '-').pop();
 
-    // hindex
-    const $tr = $(authorProfile.metrics, $result).get(1);
-    const hindex = $('.gsc_rsb_std', $tr).first().text();
+    const $interests = $profileContainer.find(author.interests);
+    const interests = $interests.map((_, el) => $(el).text()).get();
+
+    const hindex = $(author.metrics).first().text();
 
     return { name, affiliation, homepage, domain, hindex, interests };
   }
