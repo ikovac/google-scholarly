@@ -1,3 +1,5 @@
+'use strict';
+
 const cheerio = require('cheerio');
 const got = require('got');
 const PROXY_URL = 'http://api.proxiesapi.com';
@@ -20,22 +22,25 @@ const searchTags = {
 };
 
 class Scholar {
-  constructor() { }
-
   init(key) {
     this.apiKey = key;
-    this.baseUrl = `${PROXY_URL}?auth_key=${this.apiKey}&url=`;
+
+    const baseUrl = new URL(PROXY_URL);
+    baseUrl.searchParams.set('auth_key', this.apiKey);
+    this.baseUrl =  baseUrl;
   }
 
   request(url) {
-    const searchUrl = `${this.baseUrl}${encodeURIComponent(url)}`;
-    return got(searchUrl);
+    const searchUrl = this.baseUrl;
+    searchUrl.searchParams.set('url', url);
+    return got(searchUrl.href);
   }
 
   async searchPub(query) {
-    const url = `${SCHOLAR_BASE_URL}/scholar?q=` + encodeURIComponent(query);
+    const url = new URL('scholar', SCHOLAR_BASE_URL);
+    url.searchParams.set('q', query);
     try {
-      const result = await this.request(url)
+      const result = await this.request(url.href);
       return this.parsePub(result.body);
     } catch (error) {
       if (error.response.statusCode === 401) {
@@ -46,9 +51,9 @@ class Scholar {
   }
 
   async getAuthorProfile(link) {
-    const url = SCHOLAR_BASE_URL + link;
+    const url = new URL(link, SCHOLAR_BASE_URL);
     try {
-      const result = await this.request(url)
+      const result = await this.request(url.href)
       return this.parseAuthorProfile(result.body);
     } catch (error) {
       if (error.response.statusCode === 401) {
@@ -59,15 +64,11 @@ class Scholar {
   }
 
   async getPubAuthors(query) {
-    try {
-      const { authors } = await this.searchPub(query);
-      if(!authors) {
-        return null;
-      }
-      return await Promise.all(authors.map(async ({ url }) => await this.getAuthorProfile(url)));
-    } catch (error) {
-      throw error;
+    const { authors } = await this.searchPub(query);
+    if (!authors) {
+      return null;
     }
+    return await Promise.all(authors.map(async ({ url }) => await this.getAuthorProfile(url)));
   }
 
   parsePub(html) {
@@ -82,7 +83,7 @@ class Scholar {
       const url = $($element).attr('href');
       authors.push({ name, url });
     });
-    const title = $(pub.title , $result).text();
+    const title = $(pub.title, $result).text();
     return { title, authors };
   }
 
