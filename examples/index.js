@@ -9,7 +9,7 @@ Scholar
   .init(apiKey)
   .getPubAuthors('"A frequency-domain analysis of haptic gratings"')
   .then(res => console.log(res))
-  .catch(err => console.log(err.message));
+  .catch(err => console.error(err.message));
 
 // Expected output
 // [
