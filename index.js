@@ -27,7 +27,9 @@ class Scholar {
 
     const baseUrl = new URL(PROXY_URL);
     baseUrl.searchParams.set('auth_key', this.apiKey);
-    this.baseUrl =  baseUrl;
+    this.baseUrl = baseUrl;
+
+    return this;
   }
 
   request(url) {

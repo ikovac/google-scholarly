@@ -1,9 +1,12 @@
+'use strict';
+
 require('dotenv').config();
-const Scholar = require('../index');
+
+const Scholar = require('..');
 const apiKey = process.env.API_KEY; // Your https://proxiesapi.com/ api key
 
-Scholar.init(apiKey);
 Scholar
+  .init(apiKey)
   .getPubAuthors('"A frequency-domain analysis of haptic gratings"')
   .then(res => console.log(res))
   .catch(err => console.log(err.message));
