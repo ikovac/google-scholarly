@@ -27,7 +27,9 @@ class Scholar {
 
     const baseUrl = new URL(PROXY_URL);
     baseUrl.searchParams.set('auth_key', this.apiKey);
-    this.baseUrl =  baseUrl;
+    this.baseUrl = baseUrl;
+
+    return this;
   }
 
   request(url) {
@@ -53,7 +55,7 @@ class Scholar {
   async getAuthorProfile(link) {
     const url = new URL(link, SCHOLAR_BASE_URL);
     try {
-      const result = await this.request(url.href)
+      const result = await this.request(url.href);
       return this.parseAuthorProfile(result.body);
     } catch (error) {
       if (error.response.statusCode === 401) {
@@ -66,7 +68,7 @@ class Scholar {
   async getPubAuthors(query) {
     const { authors } = await this.searchPub(query);
     if (!authors) {
-      return null;
+      return;
     }
     return await Promise.all(authors.map(async ({ url }) => await this.getAuthorProfile(url)));
   }
