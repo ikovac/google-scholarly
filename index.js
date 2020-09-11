@@ -77,7 +77,10 @@ class Scholar {
     if (!authors) {
       return;
     }
-    return Promise.all(authors.map(({ url }) => this.getAuthorProfile(url)));
+    return Promise.all(authors.map(async ({ id, url }) => {
+      const profile = await this.getAuthorProfile(url);
+      return { id, ...profile };
+    }));
   }
 
   parsePub(html) {
@@ -89,8 +92,9 @@ class Scholar {
     const authors = $authors.map((_, el) => {
       const $el = $(el);
       const name = $el.text();
-      const url = $el.attr('href');
-      return { name, url };
+      const url = new URL($el.attr('href'), SCHOLAR_BASE_URL);
+      const id = url.searchParams.get('user');
+      return { id, name, url: url.href };
     }).get();
 
     const title = $publicationContainer.find(pub.title).text();
