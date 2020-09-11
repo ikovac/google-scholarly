@@ -1,6 +1,6 @@
 'use strict';
 
-require('dotenv').config();
+require('dotenv').config({ path: require.resolve('./.env') });
 
 const Scholar = require('..');
 const apiKey = process.env.API_KEY; // Your https://proxiesapi.com/ api key
