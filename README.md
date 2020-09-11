@@ -1,14 +1,19 @@
-# Google Scholar Node.js 
+# Google Scholar Node.js
+
+[![install size](https://badgen.net/packagephobia/install/google-scholarly)](https://packagephobia.now.sh/result?p=google-scholarly)
+[![npm package version](https://badgen.net/npm/v/google-scholarly)](https://npm.im/google-scholarly)
+[![github license](https://badgen.net/github/license/ikovac/google-scholarly)](https://github.com/ikovac/google-scholarly/blob/master/LICENSE)
+[![js semistandard style](https://badgen.net/badge/code%20style/semistandard/pink)](https://github.com/Flet/semistandard)
 
 ## Installation
 ```
 npm install --save google-scholarly
 ```
-Get API_KEY from: https://proxiesapi.com/
+Get `API_KEY` from: https://proxiesapi.com/
 
 ## Example
 
-```
+```js
 const Scholar = require('google-scholarly');
 const API_KEY = ''; // Your https://proxiesapi.com/ api key
 Scholar.init(API_KEY);
