@@ -11,6 +11,21 @@ beforeAll(() => Scholar.init('dummy'));
 
 afterEach(() => nock.restore());
 
+test('search publications', async () => {
+  const { nockDone } = await nock.back('pub-search.json');
+  const query = '"A frequency-domain analysis of haptic gratings"';
+  const pub = await Scholar.searchPub(query);
+  expect(pub).toEqual(expect.objectContaining({
+    title: 'A frequency-domain analysis of haptic gratings',
+    authors: expect.arrayContaining([
+      expect.objectContaining({ name: 'SA Cholewiak' }),
+      expect.objectContaining({ name: 'K Kim' }),
+      expect.objectContaining({ name: 'HZ Tan' })
+    ])
+  }));
+  nockDone();
+}, 10000);
+
 test('fetch publication authors', async () => {
   const { nockDone } = await nock.back('pub-authors.json');
   const query = '"A frequency-domain analysis of haptic gratings"';
