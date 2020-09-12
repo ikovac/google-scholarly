@@ -52,17 +52,20 @@ const selectors = {
 
 class Scholar {
   init(key) {
-    client.defaults.options = got.mergeOptions(client.defaults.options, {
-      prefixUrl: PROXY_URL,
-      searchParams: { auth_key: key }
-    });
+    if (key) {
+      this.isProxy = true;
+      client.defaults.options = got.mergeOptions(client.defaults.options, {
+        prefixUrl: PROXY_URL,
+        searchParams: { auth_key: key }
+      });
+    }
     return this;
   }
 
   request(url) {
     url = url.href || url;
     const searchParams = { url };
-    return client.get({ searchParams });
+    return this.isProxy ? client.get({ searchParams }) : client.get(url);
   }
 
   async searchPub(query) {
