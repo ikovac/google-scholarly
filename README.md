@@ -12,15 +12,21 @@ npm install --save google-scholarly
 Get `API_KEY` from: https://proxiesapi.com/
 
 ## Example
-
+### With proxy API key
 ```js
-const Scholar = require('google-scholarly');
-const API_KEY = ''; // Your https://proxiesapi.com/ api key
-Scholar.init(API_KEY);
 Scholar
+  .init(apiKey)
   .getPubAuthors('"A frequency-domain analysis of haptic gratings"')
   .then(res => console.log(res))
-  .catch(err => console.log(err.message));
+  .catch(err => console.error(err.message));
+```
+### Without proxy API key (NOT RECOMMENDED)
+```js
+Scholar
+  .init()
+  .getPubAuthors('"A frequency-domain analysis of haptic gratings"')
+  .then(res => console.log(res))
+  .catch(err => console.error(err.message));
 ```
 
 Expected output:
