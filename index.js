@@ -52,13 +52,12 @@ const selectors = {
 
 class Scholar {
   init(key) {
-    if (key) {
-      this.isProxy = true;
-      client.defaults.options = got.mergeOptions(client.defaults.options, {
-        prefixUrl: PROXY_URL,
-        searchParams: { auth_key: key }
-      });
-    }
+    if (!key) return this;
+    this.isProxy = true;
+    client.defaults.options = got.mergeOptions(client.defaults.options, {
+      prefixUrl: PROXY_URL,
+      searchParams: { auth_key: key }
+    });
     return this;
   }
 

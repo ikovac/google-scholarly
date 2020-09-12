@@ -1,7 +1,7 @@
 {
   "name": "google-scholarly",
-  "version": "1.2.0",
-  "description": "Google Scholar scraping library",
+  "version": "1.2.1",
+  "description": "Google Scholar Node.js",
   "keywords": [
     "Scholar"
   ],
