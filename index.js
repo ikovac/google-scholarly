@@ -6,6 +6,33 @@ const got = require('got');
 const PROXY_URL = 'http://api.proxiesapi.com';
 const SCHOLAR_BASE_URL = 'https://scholar.google.com';
 
+class ProxyError extends Error {
+  constructor(msg) {
+    super(msg);
+    this.name = 'ProxyError';
+  }
+}
+
+const isHTTPError = (err, { statusCode }) => {
+  return err instanceof got.HTTPError &&
+    err.response.statusCode === statusCode;
+};
+
+const client = got.extend({
+  mutableDefaults: true,
+  handlers: [
+    (options, next) => {
+      if (options.isStream) return next(options);
+      return next(options).catch(error => {
+        if (isHTTPError(error, { statusCode: 401 })) {
+          throw new ProxyError('Api key invalid or expired');
+        }
+        throw error;
+      });
+    }
+  ]
+});
+
 const selectors = {
   pub: {
     container: '.gs_ri',
@@ -23,53 +50,32 @@ const selectors = {
   }
 };
 
-const isHTTPError = (err, { statusCode }) => {
-  return err instanceof got.HTTPError &&
-    err.response.statusCode === statusCode;
-};
-
 class Scholar {
   init(key) {
-    this.apiKey = key;
-
-    const baseUrl = new URL(PROXY_URL);
-    baseUrl.searchParams.set('auth_key', this.apiKey);
-    this.baseUrl = baseUrl;
-
+    client.defaults.options = got.mergeOptions(client.defaults.options, {
+      prefixUrl: PROXY_URL,
+      searchParams: { auth_key: key }
+    });
     return this;
   }
 
   request(url) {
-    const searchUrl = this.baseUrl;
-    searchUrl.searchParams.set('url', url);
-    return got(searchUrl.href);
+    url = url.href || url;
+    const searchParams = { url };
+    return client.get({ searchParams });
   }
 
   async searchPub(query) {
     const url = new URL('scholar', SCHOLAR_BASE_URL);
     url.searchParams.set('q', query);
-    try {
-      const result = await this.request(url.href);
-      return this.parsePub(result.body);
-    } catch (error) {
-      if (isHTTPError(error, { statusCode: 401 })) {
-        throw new Error('Api key invalid or expired');
-      }
-      throw error;
-    }
+    const result = await this.request(url);
+    return this.parsePub(result.body);
   }
 
   async getAuthorProfile(link) {
     const url = new URL(link, SCHOLAR_BASE_URL);
-    try {
-      const result = await this.request(url.href);
-      return this.parseAuthorProfile(result.body);
-    } catch (error) {
-      if (isHTTPError(error, { statusCode: 401 })) {
-        throw new Error('Api key invalid or expired');
-      }
-      throw error;
-    }
+    const result = await this.request(url);
+    return this.parseAuthorProfile(result.body);
   }
 
   async getPubAuthors(query) {
@@ -120,3 +126,4 @@ class Scholar {
 }
 
 module.exports = new Scholar();
+module.exports.ProxyError = ProxyError;
