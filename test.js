@@ -18,9 +18,9 @@ test('search publications', async () => {
   expect(pub).toEqual(expect.objectContaining({
     title: 'A frequency-domain analysis of haptic gratings',
     authors: expect.arrayContaining([
-      expect.objectContaining({ name: 'SA Cholewiak' }),
-      expect.objectContaining({ name: 'K Kim' }),
-      expect.objectContaining({ name: 'HZ Tan' })
+      expect.objectContaining({ id: '4bahYMkAAAAJ', name: 'SA Cholewiak' }),
+      expect.objectContaining({ id: 'itUoRvUAAAAJ', name: 'K Kim' }),
+      expect.objectContaining({ id: 'OiVOAHMAAAAJ', name: 'HZ Tan' })
     ])
   }));
   nockDone();
@@ -32,6 +32,7 @@ test('fetch publication authors', async () => {
   const authors = await Scholar.getPubAuthors(query);
   expect(authors).toEqual(expect.arrayContaining([
     expect.objectContaining({
+      id: '4bahYMkAAAAJ',
       name: 'Steven A. Cholewiak, PhD',
       affiliation: 'Vision Scientist',
       homepage: 'http://steven.cholewiak.com/',
@@ -44,12 +45,14 @@ test('fetch publication authors', async () => {
       ]
     }),
     expect.objectContaining({
+      id: 'itUoRvUAAAAJ',
       name: 'Kwangtaek Kim',
       affiliation: 'Kent State University',
       domain: 'cs.kent.edu',
       hindex: '12'
     }),
     expect.objectContaining({
+      id: 'OiVOAHMAAAAJ',
       name: 'Hong Z Tan',
       affiliation: 'Professor of ECE, Purdue University',
       homepage: 'http://engineering.purdue.edu/~hongtan',
