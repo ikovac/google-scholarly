@@ -6,7 +6,8 @@ const Scholar = require('.');
 
 nock.back.fixtures = path.join(__dirname, '__nock_fixtures__');
 
-beforeAll(() => Scholar.init('dummy'));
+// NOTE: Retries are disabled due to: https://github.com/nock/nock/issues/1523
+beforeAll(() => Scholar.init('dummy', { retries: 0 }));
 
 afterEach(() => nock.restore());
 

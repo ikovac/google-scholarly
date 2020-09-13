@@ -2,6 +2,7 @@
 
 const cheerio = require('cheerio');
 const got = require('got');
+const pRetry = require('p-retry');
 
 const PROXY_URL = 'http://api.proxiesapi.com';
 const SCHOLAR_BASE_URL = 'https://scholar.google.com';
@@ -27,6 +28,7 @@ class ProxyError extends ScholarlyError {
   }
 }
 
+const isCaptchaError = err => err instanceof CaptchaError;
 const isHTTPError = (err, { statusCode }) => {
   return err instanceof got.HTTPError &&
     err.response.statusCode === statusCode;
@@ -53,8 +55,9 @@ const selectors = {
 };
 
 class Scholar {
-  init(key) {
+  init(key, { retries } = {}) {
     this.usesProxy = false;
+    this.retries = (retries !== undefined) ? Math.min(0, retries) : 0;
     this.client = got.extend({
       handlers: [
         (options, next) => {
@@ -77,6 +80,7 @@ class Scholar {
     if (!key) return this;
 
     this.usesProxy = true;
+    this.retries = (retries !== undefined) ? Math.min(0, retries) : 2;
     this.client = this.client.extend({
       prefixUrl: PROXY_URL,
       searchParams: { auth_key: key },
@@ -101,9 +105,18 @@ class Scholar {
 
   request(url) {
     url = url.href || url;
-    if (!this.usesProxy) return this.client.get(url);
-    const searchParams = { url };
-    return this.client.get({ searchParams });
+    return pRetry(() => {
+      if (!this.usesProxy) return this.client.get(url);
+      const searchParams = { url };
+      return this.client.get({ searchParams });
+    }, {
+      retries: this.retries,
+      onFailedAttempt(error) {
+        if (!isCaptchaError(error)) {
+          throw error;
+        }
+      }
+    });
   }
 
   async searchPub(query) {
