@@ -6,13 +6,17 @@
 [![js semistandard style](https://badgen.net/badge/code%20style/semistandard/pink)](https://github.com/Flet/semistandard)
 
 ## Installation
+
 ```
 npm install --save google-scholarly
 ```
+
 Get `API_KEY` from: https://proxiesapi.com/
 
 ## Example
+
 ### With proxy API key
+
 ```js
 Scholar
   .init(apiKey)
@@ -20,7 +24,9 @@ Scholar
   .then(res => console.log(res))
   .catch(err => console.error(err.message));
 ```
+
 ### Without proxy API key (NOT RECOMMENDED)
+
 ```js
 Scholar
   .init()
@@ -30,6 +36,7 @@ Scholar
 ```
 
 Expected output:
+
 ```
 [
   {
