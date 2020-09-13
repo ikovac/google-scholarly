@@ -32,21 +32,6 @@ const isHTTPError = (err, { statusCode }) => {
     err.response.statusCode === statusCode;
 };
 
-const client = got.extend({
-  mutableDefaults: true,
-  handlers: [
-    (options, next) => {
-      if (options.isStream) return next(options);
-      return next(options).catch(error => {
-        if (isHTTPError(error, { statusCode: 401 })) {
-          throw new ProxyError('API key invalid or expired');
-        }
-        throw error;
-      });
-    }
-  ]
-});
-
 const selectors = {
   captcha: {
     message: '[id^="gs_captcha"] h1'
@@ -69,56 +54,82 @@ const selectors = {
 
 class Scholar {
   init(key) {
+    this.usesProxy = false;
+    this.client = got.extend({
+      handlers: [
+        (options, next) => {
+          if (options.isStream) return next(options);
+          return (async () => {
+            const resp = await next(options);
+            const $ = cheerio.load(resp.body);
+
+            const { captcha } = selectors;
+            const captchaMessage = $(captcha.message).text();
+            if (captchaMessage) {
+              throw new CaptchaError(captchaMessage);
+            }
+
+            return Object.assign(resp, { body: $ });
+          })();
+        }
+      ]
+    });
     if (!key) return this;
-    this.isProxy = true;
-    client.defaults.options = got.mergeOptions(client.defaults.options, {
+
+    this.usesProxy = true;
+    this.client = this.client.extend({
       prefixUrl: PROXY_URL,
-      searchParams: { auth_key: key }
+      searchParams: { auth_key: key },
+      handlers: [
+        (options, next) => {
+          if (options.isStream) return next(options);
+          return (async () => {
+            try {
+              return await next(options);
+            } catch (error) {
+              if (isHTTPError(error, { statusCode: 401 })) {
+                throw new ProxyError('Api key invalid or expired');
+              }
+              throw error;
+            }
+          })();
+        }
+      ]
     });
     return this;
   }
 
   request(url) {
     url = url.href || url;
+    if (!this.usesProxy) return this.client.get(url);
     const searchParams = { url };
-    return this.isProxy ? client.get({ searchParams }) : client.get(url);
+    return this.client.get({ searchParams });
   }
 
   async searchPub(query) {
     const url = new URL('scholar', SCHOLAR_BASE_URL);
     url.searchParams.set('q', query);
-    const result = await this.request(url);
-    return this.parsePub(result.body);
+    const resp = await this.request(url);
+    return this.parsePub(resp.body);
   }
 
   async getAuthorProfile(link) {
     const url = new URL(link, SCHOLAR_BASE_URL);
-    const result = await this.request(url);
-    return this.parseAuthorProfile(result.body);
+    const resp = await this.request(url);
+    return this.parseAuthorProfile(resp.body);
   }
 
   async getPubAuthors(query) {
     const { authors } = await this.searchPub(query);
-    if (!authors) {
-      return;
-    }
     return Promise.all(authors.map(async ({ id, url }) => {
       const profile = await this.getAuthorProfile(url);
       return { id, ...profile };
     }));
   }
 
-  _parseHtml(html) {
-    const { captcha } = selectors;
-    const $ = cheerio.load(html);
-    const captchaMessage = $(captcha.message).text();
-    if (!captchaMessage) return $;
-    throw new CaptchaError(captchaMessage);
-  }
-
-  parsePub(html) {
+  parsePub($html) {
+    const $ = $html;
     const { pub } = selectors;
-    const $ = this._parseHtml(html);
     const $publicationContainer = $(pub.container).first();
 
     const $authors = $publicationContainer.find(pub.authors);
@@ -134,9 +145,9 @@ class Scholar {
     return { title, authors };
   }
 
-  parseAuthorProfile(html) {
+  parseAuthorProfile($html) {
+    const $ = $html;
     const { author } = selectors;
-    const $ = this._parseHtml(html);
     const $profileContainer = $(author.container);
 
     const name = $profileContainer.find(author.name).text();
