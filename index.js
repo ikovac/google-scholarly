@@ -55,10 +55,22 @@ const selectors = {
 };
 
 class Scholar {
-  init(key, { retries } = {}) {
-    this.usesProxy = false;
-    this.retries = (retries !== undefined) ? Math.min(0, retries) : 0;
-    this.client = got.extend({
+  init(apiKey, { retries } = {}) {
+    const useProxy = !apiKey;
+    this.useProxy = useProxy;
+
+    let client = this._setupClient();
+    if (useProxy) client = this._setupProxy(client, apiKey);
+    this.client = client;
+
+    if (retries === undefined) retries = useProxy ? 2 : 0;
+    this.retries = Math.min(0, retries);
+
+    return this;
+  }
+
+  _setupClient() {
+    return got.extend({
       handlers: [
         (options, next) => {
           if (options.isStream) return next(options);
@@ -77,30 +89,24 @@ class Scholar {
         }
       ]
     });
-    if (!key) return this;
+  }
 
-    this.usesProxy = true;
-    this.retries = (retries !== undefined) ? Math.min(0, retries) : 2;
-    this.client = this.client.extend({
+  _setupProxy(client, apiKey) {
+    return client.extend({
       prefixUrl: PROXY_URL,
-      searchParams: { auth_key: key },
+      searchParams: { auth_key: apiKey },
       handlers: [
         (options, next) => {
           if (options.isStream) return next(options);
-          return (async () => {
-            try {
-              return await next(options);
-            } catch (error) {
-              if (isHTTPError(error, { statusCode: 401 })) {
-                throw new ProxyError('Api key invalid or expired');
-              }
-              throw error;
+          return next(options).catch(error => {
+            if (isHTTPError(error, { statusCode: 401 })) {
+              throw new ProxyError('Api key invalid or expired');
             }
-          })();
+            throw error;
+          });
         }
       ]
     });
-    return this;
   }
 
   request(url) {
