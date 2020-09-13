@@ -76,15 +76,9 @@ class Scholar {
           if (options.isStream) return next(options);
           return (async () => {
             const resp = await next(options);
-            const $ = cheerio.load(resp.body);
-
-            const { captcha } = selectors;
-            const captchaMessage = $(captcha.message).text();
-            if (captchaMessage) {
-              throw new CaptchaError(captchaMessage);
-            }
-
-            return Object.assign(resp, { body: $ });
+            const $html = cheerio.load(resp.body);
+            const body = this._verifyPage($html);
+            return Object.assign(resp, { body });
           })();
         }
       ]
@@ -107,6 +101,18 @@ class Scholar {
         }
       ]
     });
+  }
+
+  _verifyPage($html) {
+    const $ = $html;
+    const { captcha } = selectors;
+
+    const captchaMessage = $(captcha.message).text();
+    if (captchaMessage) {
+      throw new CaptchaError(captchaMessage);
+    }
+
+    return $html;
   }
 
   request(url) {
