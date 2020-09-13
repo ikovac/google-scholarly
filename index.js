@@ -25,7 +25,7 @@ const client = got.extend({
       if (options.isStream) return next(options);
       return next(options).catch(error => {
         if (isHTTPError(error, { statusCode: 401 })) {
-          throw new ProxyError('Api key invalid or expired');
+          throw new ProxyError('API key invalid or expired');
         }
         throw error;
       });
