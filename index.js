@@ -6,7 +6,21 @@ const got = require('got');
 const PROXY_URL = 'http://api.proxiesapi.com';
 const SCHOLAR_BASE_URL = 'https://scholar.google.com';
 
-class ProxyError extends Error {
+class ScholarlyError extends Error {
+  constructor(msg) {
+    super(msg);
+    this.name = 'ScholarlyError';
+  }
+}
+
+class CaptchaError extends ScholarlyError {
+  constructor(msg) {
+    super(msg);
+    this.name = 'CaptchaError';
+  }
+}
+
+class ProxyError extends ScholarlyError {
   constructor(msg) {
     super(msg);
     this.name = 'ProxyError';
@@ -34,6 +48,9 @@ const client = got.extend({
 });
 
 const selectors = {
+  captcha: {
+    message: '[id^="gs_captcha"] h1'
+  },
   pub: {
     container: '.gs_ri',
     title: '.gs_rt',
@@ -91,9 +108,17 @@ class Scholar {
     }));
   }
 
+  _parseHtml(html) {
+    const { captcha } = selectors;
+    const $ = cheerio.load(html);
+    const captchaMessage = $(captcha.message).text();
+    if (!captchaMessage) return $;
+    throw new CaptchaError(captchaMessage);
+  }
+
   parsePub(html) {
     const { pub } = selectors;
-    const $ = cheerio.load(html);
+    const $ = this._parseHtml(html);
     const $publicationContainer = $(pub.container).first();
 
     const $authors = $publicationContainer.find(pub.authors);
@@ -111,7 +136,7 @@ class Scholar {
 
   parseAuthorProfile(html) {
     const { author } = selectors;
-    const $ = cheerio.load(html);
+    const $ = this._parseHtml(html);
     const $profileContainer = $(author.container);
 
     const name = $profileContainer.find(author.name).text();
@@ -132,4 +157,6 @@ class Scholar {
 }
 
 module.exports = new Scholar();
+module.exports.ScholarlyError = ScholarlyError;
+module.exports.CaptchaError = CaptchaError;
 module.exports.ProxyError = ProxyError;

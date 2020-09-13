@@ -62,7 +62,7 @@ test('fetch publication authors', async () => {
   ]));
 }, 10000);
 
-test.only('handle invalid API key', async () => {
+test('handle invalid API key', async () => {
   const { nockDone } = await nock.back('invalid-api-key.json');
   const query = '"A frequency-domain analysis of haptic gratings"';
   try {
