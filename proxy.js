@@ -1,11 +1,18 @@
 'use strict';
 
-const proxy = 'http://localhost:9090';
+const { createGlobalProxyAgent } = require('global-agent');
 
-Object.assign(process.env, {
-  NODE_TLS_REJECT_UNAUTHORIZED: 0,
-  GLOBAL_AGENT_HTTP_PROXY: process.env.GLOBAL_AGENT_HTTP_PROXY || proxy,
-  GLOBAL_AGENT_HTTPS_PROXY: process.env.GLOBAL_AGENT_HTTPS_PROXY || proxy
-});
+const globalAgent = createGlobalProxyAgent();
+globalAgent.HTTP_PROXY = globalAgent.HTTP_PROXY || getEnvVar(['HTTP_PROXY', 'http_proxy']);
+globalAgent.HTTPS_PROXY = globalAgent.HTTPS_PROXY || getEnvVar(['HTTPS_PROXY', 'https_proxy']);
+globalAgent.NO_PROXY = globalAgent.NO_PROXY || getEnvVar(['NO_PROXY', 'no_proxy']);
 
-require('global-agent/bootstrap');
+function getEnvVar(names = []) {
+  const name = names.find(name => process.env[name]);
+  if (!name) return;
+  const value = process.env[name];
+  // NOTE: Do NOT alter library behaviour!
+  // See https://github.com/gajus/global-agent/tree/c663c62#what-is-the-reason-global-agentbootstrap-does-not-use-http_proxy
+  delete process.env[name];
+  return value;
+}
