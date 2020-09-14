@@ -56,7 +56,7 @@ const selectors = {
 
 class Scholar {
   init(apiKey, { retries } = {}) {
-    const useProxy = !apiKey;
+    const useProxy = !!apiKey;
     this.useProxy = useProxy;
 
     let client = this._setupClient();
