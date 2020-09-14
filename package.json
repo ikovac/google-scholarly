@@ -5,13 +5,13 @@
   "keywords": [
     "Scholar"
   ],
-  "homepage": "https://github.com/ikovac/scholarly#readme",
+  "homepage": "https://github.com/ikovac/google-scholarly#readme",
   "bugs": {
-    "url": "https://github.com/ikovac/scholarly/issues"
+    "url": "https://github.com/ikovac/google-scholarly/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ikovac/scholarly.git"
+    "url": "git+https://github.com/ikovac/google-scholarly.git"
   },
   "license": "ISC",
   "author": "",
