@@ -64,7 +64,7 @@ class Scholar {
     this.client = client;
 
     if (retries === undefined) retries = useProxy ? 2 : 0;
-    this.retries = Math.min(0, retries);
+    this.retries = Math.max(0, retries);
 
     return this;
   }
