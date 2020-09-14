@@ -118,7 +118,7 @@ class Scholar {
   request(url) {
     url = url.href || url;
     return pRetry(() => {
-      if (!this.usesProxy) return this.client.get(url);
+      if (!this.useProxy) return this.client.get(url);
       const searchParams = { url };
       return this.client.get({ searchParams });
     }, {
