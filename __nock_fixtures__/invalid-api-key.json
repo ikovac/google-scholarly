@@ -1,0 +1,27 @@
+[
+    {
+        "scope": "http://api.proxiesapi.com:80",
+        "method": "GET",
+        "path": "/?url=https%3A%2F%2Fscholar.google.com%2Fscholar%3Fq%3D%2522A%2Bfrequency-domain%2Banalysis%2Bof%2Bhaptic%2Bgratings%2522&auth_key=dummy",
+        "body": "",
+        "status": 401,
+        "response": "",
+        "rawHeaders": [
+            "Date",
+            "Sun, 13 Sep 2020 02:52:58 GMT",
+            "Content-Type",
+            "text/html; charset=UTF-8",
+            "Content-Length",
+            "0",
+            "Connection",
+            "close",
+            "Server",
+            "Apache/2.4.41 () PHP/7.2.24",
+            "Upgrade",
+            "h2,h2c",
+            "X-Powered-By",
+            "PHP/7.2.24"
+        ],
+        "responseIsBinary": false
+    }
+]

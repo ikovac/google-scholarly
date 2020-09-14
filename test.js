@@ -4,10 +4,10 @@ const nock = require('nock');
 const path = require('path');
 const Scholar = require('.');
 
-nock.back.setMode('record');
 nock.back.fixtures = path.join(__dirname, '__nock_fixtures__');
 
-beforeAll(() => Scholar.init('dummy'));
+// NOTE: Retries are disabled due to: https://github.com/nock/nock/issues/1523
+beforeAll(() => Scholar.init('dummy', { retries: 0 }));
 
 afterEach(() => nock.restore());
 
@@ -15,6 +15,7 @@ test('search publications', async () => {
   const { nockDone } = await nock.back('pub-search.json');
   const query = '"A frequency-domain analysis of haptic gratings"';
   const pub = await Scholar.searchPub(query);
+  nockDone();
   expect(pub).toEqual(expect.objectContaining({
     title: 'A frequency-domain analysis of haptic gratings',
     authors: expect.arrayContaining([
@@ -23,13 +24,13 @@ test('search publications', async () => {
       expect.objectContaining({ id: 'OiVOAHMAAAAJ', name: 'HZ Tan' })
     ])
   }));
-  nockDone();
 }, 10000);
 
 test('fetch publication authors', async () => {
   const { nockDone } = await nock.back('pub-authors.json');
   const query = '"A frequency-domain analysis of haptic gratings"';
   const authors = await Scholar.getPubAuthors(query);
+  nockDone();
   expect(authors).toEqual(expect.arrayContaining([
     expect.objectContaining({
       id: '4bahYMkAAAAJ',
@@ -60,5 +61,28 @@ test('fetch publication authors', async () => {
       hindex: '49'
     })
   ]));
-  nockDone();
+}, 10000);
+
+test('handle invalid API key', async () => {
+  const { nockDone } = await nock.back('invalid-api-key.json');
+  const query = '"A frequency-domain analysis of haptic gratings"';
+  try {
+    await Scholar.searchPub(query);
+  } catch (error) {
+    nockDone();
+    expect(error).toBeInstanceOf(Scholar.ScholarlyError);
+    expect(error).toBeInstanceOf(Scholar.ProxyError);
+  }
+}, 10000);
+
+test('handle captcha', async () => {
+  const { nockDone } = await nock.back('captcha.json');
+  const query = '"A frequency-domain analysis of haptic gratings"';
+  try {
+    await Scholar.searchPub(query);
+  } catch (error) {
+    nockDone();
+    expect(error).toBeInstanceOf(Scholar.ScholarlyError);
+    expect(error).toBeInstanceOf(Scholar.CaptchaError);
+  }
 }, 10000);

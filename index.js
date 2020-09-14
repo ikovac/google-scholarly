@@ -2,38 +2,42 @@
 
 const cheerio = require('cheerio');
 const got = require('got');
+const pRetry = require('p-retry');
 
 const PROXY_URL = 'http://api.proxiesapi.com';
 const SCHOLAR_BASE_URL = 'https://scholar.google.com';
 
-class ProxyError extends Error {
+class ScholarlyError extends Error {
+  constructor(msg) {
+    super(msg);
+    this.name = 'ScholarlyError';
+  }
+}
+
+class CaptchaError extends ScholarlyError {
+  constructor(msg) {
+    super(msg);
+    this.name = 'CaptchaError';
+  }
+}
+
+class ProxyError extends ScholarlyError {
   constructor(msg) {
     super(msg);
     this.name = 'ProxyError';
   }
 }
 
+const isCaptchaError = err => err instanceof CaptchaError;
 const isHTTPError = (err, { statusCode }) => {
   return err instanceof got.HTTPError &&
     err.response.statusCode === statusCode;
 };
 
-const client = got.extend({
-  mutableDefaults: true,
-  handlers: [
-    (options, next) => {
-      if (options.isStream) return next(options);
-      return next(options).catch(error => {
-        if (isHTTPError(error, { statusCode: 401 })) {
-          throw new ProxyError('API key invalid or expired');
-        }
-        throw error;
-      });
-    }
-  ]
-});
-
 const selectors = {
+  captcha: {
+    message: '[id^="gs_captcha"] h1'
+  },
   pub: {
     container: '.gs_ri',
     title: '.gs_rt',
@@ -51,49 +55,106 @@ const selectors = {
 };
 
 class Scholar {
-  init(key) {
-    if (!key) return this;
-    this.isProxy = true;
-    client.defaults.options = got.mergeOptions(client.defaults.options, {
-      prefixUrl: PROXY_URL,
-      searchParams: { auth_key: key }
-    });
+  init(apiKey, { retries } = {}) {
+    const useProxy = !!apiKey;
+    this.useProxy = useProxy;
+
+    let client = this._setupClient();
+    if (useProxy) client = this._setupProxy(client, apiKey);
+    this.client = client;
+
+    if (retries === undefined) retries = useProxy ? 2 : 0;
+    this.retries = Math.max(0, retries);
+
     return this;
+  }
+
+  _setupClient() {
+    return got.extend({
+      handlers: [
+        (options, next) => {
+          if (options.isStream) return next(options);
+          return (async () => {
+            const resp = await next(options);
+            const $html = cheerio.load(resp.body);
+            const body = this._verifyPage($html);
+            return Object.assign(resp, { body });
+          })();
+        }
+      ]
+    });
+  }
+
+  _setupProxy(client, apiKey) {
+    return client.extend({
+      prefixUrl: PROXY_URL,
+      searchParams: { auth_key: apiKey },
+      handlers: [
+        (options, next) => {
+          if (options.isStream) return next(options);
+          return next(options).catch(error => {
+            if (isHTTPError(error, { statusCode: 401 })) {
+              throw new ProxyError('Api key invalid or expired');
+            }
+            throw error;
+          });
+        }
+      ]
+    });
+  }
+
+  _verifyPage($html) {
+    const $ = $html;
+    const { captcha } = selectors;
+
+    const captchaMessage = $(captcha.message).text();
+    if (captchaMessage) {
+      throw new CaptchaError(captchaMessage);
+    }
+
+    return $html;
   }
 
   request(url) {
     url = url.href || url;
-    const searchParams = { url };
-    return this.isProxy ? client.get({ searchParams }) : client.get(url);
+    return pRetry(() => {
+      if (!this.usesProxy) return this.client.get(url);
+      const searchParams = { url };
+      return this.client.get({ searchParams });
+    }, {
+      retries: this.retries,
+      onFailedAttempt(error) {
+        if (!isCaptchaError(error)) {
+          throw error;
+        }
+      }
+    });
   }
 
   async searchPub(query) {
     const url = new URL('scholar', SCHOLAR_BASE_URL);
     url.searchParams.set('q', query);
-    const result = await this.request(url);
-    return this.parsePub(result.body);
+    const resp = await this.request(url);
+    return this.parsePub(resp.body);
   }
 
   async getAuthorProfile(link) {
     const url = new URL(link, SCHOLAR_BASE_URL);
-    const result = await this.request(url);
-    return this.parseAuthorProfile(result.body);
+    const resp = await this.request(url);
+    return this.parseAuthorProfile(resp.body);
   }
 
   async getPubAuthors(query) {
     const { authors } = await this.searchPub(query);
-    if (!authors) {
-      return;
-    }
     return Promise.all(authors.map(async ({ id, url }) => {
       const profile = await this.getAuthorProfile(url);
       return { id, ...profile };
     }));
   }
 
-  parsePub(html) {
+  parsePub($html) {
+    const $ = $html;
     const { pub } = selectors;
-    const $ = cheerio.load(html);
     const $publicationContainer = $(pub.container).first();
 
     const $authors = $publicationContainer.find(pub.authors);
@@ -109,9 +170,9 @@ class Scholar {
     return { title, authors };
   }
 
-  parseAuthorProfile(html) {
+  parseAuthorProfile($html) {
+    const $ = $html;
     const { author } = selectors;
-    const $ = cheerio.load(html);
     const $profileContainer = $(author.container);
 
     const name = $profileContainer.find(author.name).text();
@@ -132,4 +193,6 @@ class Scholar {
 }
 
 module.exports = new Scholar();
+module.exports.ScholarlyError = ScholarlyError;
+module.exports.CaptchaError = CaptchaError;
 module.exports.ProxyError = ProxyError;
