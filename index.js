@@ -38,10 +38,30 @@ const selectors = {
   captcha: {
     message: '[id^="gs_captcha"] h1'
   },
-  pub: {
+  pubSearch: {
     container: '.gs_ri',
     title: '.gs_rt a',
     authors: '.gs_a a'
+  },
+  pub: {
+    wrapper: '#gsc_oci_title_wrapper',
+    container: '#gsc_oci_table',
+    title: '#gsc_vcd_title a',
+    link: '#gsc_vcd_title a',
+    pdf: '#gsc_oci_title_gg a',
+    authors: '.gs_scl:first-child .gsc_vcd_value',
+    date: '.gs_scl:nth-of-type(2) .gsc_vcd_value',
+    journal: '.gs_scl:nth-of-type(3) .gsc_vcd_value',
+    volume: '.gs_scl:nth-of-type(4) .gsc_vcd_value',
+    pages: '.gs_scl:nth-of-type(5) .gsc_vcd_value',
+    publisher: '.gs_scl:nth-of-type(6) .gsc_vcd_value',
+    description: '.gs_scl:nth-of-type(7) .gsc_vcd_value',
+    citations: '.gs_scl:nth-of-type(8) .gsc_vcd_value div:first-child a',
+    citationslink: '.gs_scl:nth-of-type(8) .gsc_vcd_value div:first-child a'
+  },
+  authorProfile: {
+    pubs: '#gsc_a_t tbody tr',
+    button: 'button#gsc_bpf_more'
   },
   author: {
     container: '#gsc_prf',
@@ -183,7 +203,8 @@ class Scholar {
         data = this.parseAuthorProfile(resp.body);
       }
       const $ = resp.body;
-      const pubs = $('#gsc_a_t tbody tr');
+      const { authorProfile } = selectors;
+      const pubs = $(authorProfile.pubs);
       for (var i = 0; i < pubs.length; i++) {
         if (limit != 'all' && publications.length >= limit) {
         // if (publications.length >= limit) {
@@ -194,7 +215,7 @@ class Scholar {
         const pub = this.parseAuthorPub(pubs[i]);
         publications.push(pub);
       }
-      if ($('button#gsc_bpf_more').is('[disabled=]') != true && !flag) {
+      if ($(authorProfile.button).is('[disabled=]') != true && !flag) {
         cstart += pagesize;
       } else {
         break;
@@ -247,10 +268,10 @@ class Scholar {
 
   parsePubSearch($html) {
     const $ = $html;
-    const { pub } = selectors;
-    const $publicationContainer = $(pub.container).first();
+    const { pubSearch } = selectors;
+    const $publicationContainer = $(pubSearch.container).first();
 
-    const $authors = $publicationContainer.find(pub.authors);
+    const $authors = $publicationContainer.find(pubSearch.authors);
     const authors = $authors.map((_, el) => {
       const $el = $(el);
       const name = $el.text();
@@ -259,8 +280,8 @@ class Scholar {
       return { id, name, url: url.href };
     }).get();
 
-    const title = $publicationContainer.find(pub.title).text();
-    const link = $publicationContainer.find(pub.title).attr('href');
+    const title = $publicationContainer.find(pubSearch.title).text();
+    const link = $publicationContainer.find(pubSearch.title).attr('href');
 
     return { title, authors, link };
   }
@@ -268,19 +289,20 @@ class Scholar {
   parsePub($html) {
     const $ = $html;
     const { pub } = selectors;
-    const $publicationContainer = $('#gsc_vcd_table');
+    const $publicationContainer = $(pub.container);
 
-    const title = $('#gsc_vcd_title a').text();
-    const link = $('#gsc_vcd_title a').attr('href');
-    const authors = $publicationContainer.find('.gs_scl:first-child .gsc_vcd_value').text();
-    const date = $publicationContainer.find('.gs_scl:nth-of-type(2) .gsc_vcd_value').text();
-    const journal = $publicationContainer.find('.gs_scl:nth-of-type(3) .gsc_vcd_value').text();
-    const volume = $publicationContainer.find('.gs_scl:nth-of-type(4) .gsc_vcd_value').text();
-    const pages = $publicationContainer.find('.gs_scl:nth-of-type(5) .gsc_vcd_value').text();
-    const publisher = $publicationContainer.find('.gs_scl:nth-of-type(6) .gsc_vcd_value').text();
-    const description = $publicationContainer.find('.gs_scl:nth-of-type(7) .gsc_vcd_value').text();
-    const citations = $publicationContainer.find('.gs_scl:nth-of-type(8) .gsc_vcd_value div:first-child a').text().split(' ').pop();
-    const citationslink = $publicationContainer.find('.gs_scl:nth-of-type(8) .gsc_vcd_value div:first-child a').attr('href');
+    const title = $(pub.wrapper).find(pub.title).text();
+    const link = $(pub.wrapper).find(pub.link).attr('href');
+    const pdf = $(pub.wrapper).find(pub.pdf).attr('href');
+    const authors = $publicationContainer.find(pub.authors).text();
+    const date = $publicationContainer.find(pub.date).text();
+    const journal = $publicationContainer.find(pub.journal).text();
+    const volume = $publicationContainer.find(pub.volume).text();
+    const pages = $publicationContainer.find(pub.pages).text();
+    const publisher = $publicationContainer.find(pub.publisher).text();
+    const description = $publicationContainer.find(pub.description).text();
+    const citations = $publicationContainer.find(pub.citations).text().split(' ').pop();
+    const citationslink = $publicationContainer.find(pub.citationslink).attr('href');
 
     return { title, link, authors, date, journal, volume, pages, publisher, description, citations, citationslink };
   }
@@ -316,7 +338,7 @@ class Scholar {
     const { publications } = selectors;
 
     const title = $(publications.title).text();
-    const link = $(publications.title).attr('data-href');
+    const link = $(publications.title).attr('href');
     const url = new URL(link, SCHOLAR_BASE_URL);
     const id = url.searchParams.get('citation_for_view');
     const authors = $(publications.authors).text();
