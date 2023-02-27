@@ -28,7 +28,7 @@
     "cheerio": "^1.0.0-rc.3",
     "dotenv": "^8.6.0",
     "got": "^12.5.3",
-    "p-retry": "^4.6.2"
+    "p-retry": "^5.1.2"
   },
   "devDependencies": {
     "@types/eslint": "^8.4.10",
